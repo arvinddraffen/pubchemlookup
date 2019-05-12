@@ -12,6 +12,7 @@ import json
 # For displaying error in popup
 import traceback
 
+# Used in removing temporary image file
 import os
 
 class PubChemGUI:
@@ -31,6 +32,7 @@ class PubChemGUI:
         self.init_gui()
 
     def init_gui(self):
+        """Prepares Elements for GUI Using tkinter Grid"""
         self.frame = tkinter.Frame(root)
         self.frame.grid(column = 0, row = 0, padx = (5,10), pady = (2,2))
         self.compoundLabel = Label(self.frame, text = "Enter compound to search:")
@@ -101,27 +103,31 @@ class PubChemGUI:
         self.exportImgBtn.grid_remove()
 
     def exportTxtBtnAction(self):
-            try:
+        """Prompts for directory to save txt file output when corresponding button (self.exportTxtBtn) is pressed"""
+        try:
+            if self.compoundFound:
                 saveDirectory = filedialog.asksaveasfilename(filetypes=[("Text Files (*.txt)", "*.txt")], defaultextension=".txt", initialfile = self.name)
                 with open(saveDirectory, 'w+') as file:
                     file.write(json.dumps(data))
-            except:
-                FileNotFoundError           # user exited filedialog popup
-                self.compoundFound = False
+        except:
+            FileNotFoundError           # user exited filedialog popup
+            self.compoundFound = False
     def saveImgBtnAction(self):
+        """Prompts for directory to save structure image output when corresponding button (self.exportImgBtn) is pressed"""
         try:
-            saveDirectory = filedialog.asksaveasfilename(filetypes=[("PNG (*.png)", "*.png")], defaultextension=".png", initialfile = self.name)
-            with open(saveDirectory, 'wb') as file:
-                file.write(self.imagerequest.content)
+            if self.compoundFound:
+                saveDirectory = filedialog.asksaveasfilename(filetypes=[("PNG (*.png)", "*.png")], defaultextension=".png", initialfile = self.name)
+                with open(saveDirectory, 'wb') as file:
+                    file.write(self.imagerequest.content)
         except:
             FileNotFoundError
             self.compoundFound = False
 
     def get_compound_from_text(self, name):
+        """Queries PubChem database for text entered to determine if the input is valid"""
         try:
             r = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/" + name + "/cids/JSON")
             data = r.json()
-            print(data)
             if 'Fault' in data:
                 messagebox.showerror("Error", str(data['Fault']['Code']) + "\n" + str(data['Fault']['Details'][0]))
             elif len(data['IdentifierList']['CID']) > 1:
@@ -137,10 +143,12 @@ class PubChemGUI:
             messagebox.showerror("Error", traceback.format_exc())
 
     def retrieve_compound_info(self, cid):
+        """Queries PubChem database based on CID entered, or returned based on text input, for molecular structure, molecular formula, molecular weight, and IUPAC name"""
         #Retrieve molecular structure
         self.imagerequest = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/" + str(cid) + "/PNG")
         if self.imagerequest.status_code != 200 and self.imagerequest.status_code != 202:
             self.compoundFound = False
+            print(self.imagerequest.status_code)
             messagebox.showerror("Error", self.status_codes[self.imagerequest.status_code][0] + "\n" + self.status_codes[self.imagerequest.status_code][1])
         else:
             open('structure.png', 'wb').write(self.imagerequest.content)
@@ -155,8 +163,13 @@ class PubChemGUI:
 
             if self.searchType == self.searchTypes[1]:
                 request = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/" + str(cid) + "/synonyms/JSON")
-                names = request.json()
-                self.name = names['InformationList']['Information'][0]['Synonym'][0]
+                names = request.json() 
+                print(names)
+                if 'Fault' in names:
+                    messagebox.showerror("Error", str(names['Fault']['Code']) + "\n" + str(names['Fault']['Message']))
+                    self.name = ""
+                else:
+                    self.name = names['InformationList']['Information'][0]['Synonym'][0] # Error-check for no name returned (example: 498)
 
             # Assign Retrieved Data
             if 'MolecularFormula' not in str(data['PropertyTable']['Properties'][0]):
@@ -181,6 +194,7 @@ class PubChemGUI:
             self.update_gui(cid)
 
     def update_gui(self, cid):
+        """Displays GUI elements setup in init_gui() based on information retrieved from PubChem database"""
         self.structureLabel.config(image = self.img)
         self.structureLabel.grid()
         self.structureLabelLabel.config(text = str(self.name).title() + " (CID: " + str(cid) + ")")
