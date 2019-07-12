@@ -64,10 +64,10 @@ class PubChemGUI:
         root.minsize(root.winfo_width() + 10, root.winfo_height() + 10)
 
         self.structureLabel = Label(root)
-        self.structureLabel.grid(column = 0, row = 1, rowspan = 6)
+        self.structureLabel.grid(column = 0, row = 1, rowspan = 8)
         self.structureLabel.grid_remove()
         self.structureLabelLabel = Label(root, font = "Verdana 13 bold")
-        self.structureLabelLabel.grid(column = 0, row = 7)
+        self.structureLabelLabel.grid(column = 0, row = 9)
         self.structureLabelLabel.grid_remove()
 
         self.molecularFormulaLabelLabel = Label(root, text = "Molecular Formula:", font = "Verdana 10 bold")
@@ -91,8 +91,15 @@ class PubChemGUI:
         self.IUPACNameLabel.grid(column = 1, row = 6)
         self.IUPACNameLabel.grid_remove()
 
+        self.chargeLabelLabel = Label(root, text = "Charge", font = "Verdana 10 bold")
+        self.chargeLabelLabel.grid(column = 1, row = 7)
+        self.chargeLabelLabel.grid_remove()
+        self.chargeLabel = Label(root)
+        self.chargeLabel.grid(column = 1, row = 8)
+        self.chargeLabel.grid_remove()
+
         self.infoLabel = Label(root, text = "Information", font = "Verdana 13 bold")
-        self.infoLabel.grid(column = 1, row = 7)
+        self.infoLabel.grid(column = 1, row = 9)
         self.infoLabel.grid_remove()
 
         self.exportTxtBtn = Button(root, text = "Export to TXT", command = self.exportTxtBtnAction)
@@ -111,7 +118,6 @@ class PubChemGUI:
                     file.write(json.dumps(data))
         except:
             FileNotFoundError           # user exited filedialog popup
-            self.compoundFound = False
     def saveImgBtnAction(self):
         """Prompts for directory to save structure image output when corresponding button (self.exportImgBtn) is pressed"""
         try:
@@ -121,7 +127,6 @@ class PubChemGUI:
                     file.write(self.imagerequest.content)
         except:
             FileNotFoundError
-            self.compoundFound = False
 
     def get_compound_from_text(self, name):
         """Queries PubChem database for text entered to determine if the input is valid"""
@@ -143,7 +148,7 @@ class PubChemGUI:
             messagebox.showerror("Error", traceback.format_exc())
 
     def retrieve_compound_info(self, cid):
-        """Queries PubChem database based on CID entered, or returned based on text input, for molecular structure, molecular formula, molecular weight, and IUPAC name"""
+        """Queries PubChem database based on CID entered, or returned based on text input, for molecular structure, molecular formula, molecular weight, IUPAC name, and charge"""
         #Retrieve molecular structure
         self.imagerequest = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/" + str(cid) + "/PNG")
         if self.imagerequest.status_code != 200 and self.imagerequest.status_code != 202:
@@ -158,13 +163,12 @@ class PubChemGUI:
             os.remove('structure.png')
 
             # Retrieve information about molecule/compound (specifically molecular formula, molecular weight, IUPAC name)
-            r = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/" + str(cid) + "/property/MolecularFormula,MolecularWeight,IUPACName/JSON")
+            r = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/" + str(cid) + "/property/MolecularFormula,MolecularWeight,IUPACName,Charge/JSON")
             data = r.json()
 
             if self.searchType == self.searchTypes[1]:
                 request = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/" + str(cid) + "/synonyms/JSON")
                 names = request.json() 
-                print(names)
                 if 'Fault' in names:
                     messagebox.showerror("Error", str(names['Fault']['Code']) + "\n" + str(names['Fault']['Message']))
                     self.name = ""
@@ -189,6 +193,12 @@ class PubChemGUI:
                 messagebox.showwarning("Warning", message = "No IUPAC name returned")
             else:
                 self.IUPACName = str(data['PropertyTable']['Properties'][0]['IUPACName'])
+            
+            if 'Charge' not in str(data['PropertyTable']['Properties'][0]):
+                self.charge = "Nothing returned"
+                messagebox.showwarning("Warning", message = "No charge returned")
+            else:
+                self.charge = str(data['PropertyTable']['Properties'][0]['Charge'])
 
             self.compoundFound = True
             self.update_gui(cid)
@@ -211,6 +221,10 @@ class PubChemGUI:
         self.IUPACNameLabel.config(text = self.IUPACName)
         self.IUPACNameLabelLabel.grid()
         self.IUPACNameLabel.grid()
+
+        self.chargeLabel.config(text = self.charge)
+        self.chargeLabelLabel.grid()
+        self.chargeLabel.grid()
 
         self.infoLabel.grid()
 
