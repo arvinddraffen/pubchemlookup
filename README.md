@@ -1,5 +1,5 @@
 # Pubchem Lookup
-A simple GUI utility for retrieving basic stats of compounds or molecules on the PubChem database. 
+A simple GUI utility for retrieving basic stats of compounds or molecules on the [PubChem database](https://pubchem.ncbi.nlm.nih.gov/). Data is retrieved from PubChem using the [PUG REST URL-based API](https://pubchemdocs.ncbi.nlm.nih.gov/pug-rest).
 
 ## Getting Started
 The program requires a few dependencies be installed in order to properly run for development/testing/use, which will be discussed here.
@@ -26,3 +26,15 @@ Once all dependencies are accounted for, the program can then be ran. The progra
 ```
 python PubchemLookup.py
 ```
+Upon opening the program, a window which appears like the following should appear.
+![opening screen](/Runtime_Images/Opening_Screen.PNG)
+
+From here, either select to search by Name or CID and enter the corresponding value into the search box, then press the button to search. A successful query will return information in the following format.
+![successful name query](/Runtime_Images/Valid_Search_Name.PNG)
+
+A dialog will appear if any expected data parameter is not available/returned or if an invalid query is made to the database. 
+![PUGREST.NotFound error dialog](/Runtime_Images/Error_PUGREST_NotFound.PNG)
+
+
+## Author
+* **Arvind Draffen**
